@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <conio.h> 
 #include <time.h> 
 
 /* Board: [row][col][stack] 
@@ -13,7 +14,7 @@ void flush() { int c; while((c=getchar())!='\n' && c!=EOF); }
 
 void init() {
     int r, c, i;
-    srand(time(NULL));
+	_randomize();
     for(r=0; r<3; r++) {
         for(c=0; c<3; c++) {
             height[r][c] = 0;
@@ -28,7 +29,7 @@ void init() {
 
 void show() {
     int r, c;
-    printf("\033[H\033[2J"); 
+	clrscr();
     printf("    0    1    2\n\n");
     for(r=0; r<3; r++) {
         printf("%d ", r);
@@ -43,12 +44,8 @@ void show() {
         }
         printf("\n\n");
     }
-    printf("YOU "); 
-    for(r=0;r<3;r++) for(c=0;c<inven[0][r];c++) putchar(r+'A'); 
-    putchar('\n');
-    printf("CPU "); 
-    for(r=0;r<3;r++) for(c=0;c<inven[1][r];c++) putchar(r+'0'); 
-    putchar('\n');
+    printf("YOU "); for(r=0;r<3;r++) for(c=0;c<inven[0][r];c++) putchar(r+'A'); putchar('\n');
+    printf("CPU "); for(r=0;r<3;r++) for(c=0;c<inven[1][r];c++) putchar(r+'0'); putchar('\n');
 }
 
 int check_win() {
@@ -60,15 +57,11 @@ int check_win() {
         }
     }
     for(i=0; i<3; i++) {
-        if(top[i][0] != -1 && top[i][0] == top[i][1] && 
-           top[i][1] == top[i][2]) return top[i][0];
-        if(top[0][i] != -1 && top[0][i] == top[1][i] && 
-           top[1][i] == top[2][i]) return top[0][i];
+        if(top[i][0] != -1 && top[i][0] == top[i][1] && top[i][1] == top[i][2]) return top[i][0];
+        if(top[0][i] != -1 && top[0][i] == top[1][i] && top[1][i] == top[2][i]) return top[0][i];
     }
-    if(top[0][0] != -1 && top[0][0] == top[1][1] && 
-       top[1][1] == top[2][2]) return top[0][0];
-    if(top[0][2] != -1 && top[0][2] == top[1][1] && 
-       top[1][1] == top[2][0]) return top[0][2];
+    if(top[0][0] != -1 && top[0][0] == top[1][1] && top[1][1] == top[2][2]) return top[0][0];
+    if(top[0][2] != -1 && top[0][2] == top[1][1] && top[1][1] == top[2][0]) return top[0][2];
     return -1;
 }
 
@@ -96,149 +89,79 @@ int piece_move(int p, int r1, int c1, int r2, int c2) {
     return 1;
 }
 
-/* --- MINIMAX CORE --- */
-
-int evaluate() {
-    int win = check_win();
-    if (win == 1) return 1000;
-    if (win == 0) return -1000;
-    int score = 0, r, c;
-    for (r = 0; r < 3; r++) {
-        for (c = 0; c < 3; c++) {
-            if (height[r][c] > 0) {
-                if (board[r][c][height[r][c]-1] / 3 == 1) score += 5;
-                else score -= 5;
-            }
-        }
-    }
-    return score;
-}
-
-int minimax(int depth, int alpha, int beta, int is_max) {
-    int score = evaluate();
-    if (depth == 0 || abs(score) > 500) return score;
-    int r, c, sz, r2, c2;
-
-    if (is_max) {
-        int best = -2000;
-        for (sz = 2; sz >= 0; sz--) {
-            if (inven[1][sz] <= 0) continue;
-            for (r = 0; r < 3; r++) {
-                for (c = 0; c < 3; c++) {
-                    if (piece_new(1, sz, r, c)) {
-                        int v = minimax(depth - 1, alpha, beta, 0);
-                        inven[1][sz]++; board[r][c][--height[r][c]] = -1;
-                        if (v > best) best = v;
-                        if (best > alpha) alpha = best;
-                        if (beta <= alpha) return best;
-                    }
-                }
-            }
-        }
-        for (r = 0; r < 3; r++) {
-            for (c = 0; c < 3; c++) {
-                if (height[r][c] > 0 && board[r][c][height[r][c]-1]/3 == 1) {
-                    for (r2 = 0; r2 < 3; r2++) {
-                        for (c2 = 0; c2 < 3; c2++) {
-                            if (r == r2 && c == c2) continue;
-                            if (piece_move(1, r, c, r2, c2)) {
-                                int v = minimax(depth - 1, alpha, beta, 0);
-                                int pv = board[r2][c2][--height[r2][c2]];
-                                board[r2][c2][height[r2][c2]] = -1;
-                                board[r][c][height[r][c]++] = pv;
-                                if (v > best) best = v;
-                                if (best > alpha) alpha = best;
-                                if (beta <= alpha) return best;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return best;
-    } else {
-        int best = 2000;
-        for (sz = 2; sz >= 0; sz--) {
-            if (inven[0][sz] <= 0) continue;
-            for (r = 0; r < 3; r++) {
-                for (c = 0; c < 3; c++) {
-                    if (piece_new(0, sz, r, c)) {
-                        int v = minimax(depth - 1, alpha, beta, 1);
-                        inven[0][sz]++; board[r][c][--height[r][c]] = -1;
-                        if (v < best) best = v;
-                        if (best < beta) beta = best;
-                        if (beta <= alpha) return best;
-                    }
-                }
-            }
-        }
-        return best;
-    }
-}
-
 void cpu_play() {
-    int r, c, sz, r2, c2, b_v = -2000, m_t = -1;
-    int b_sz, b_r, b_c, b_r2, b_c2;
-    printf("CPU THINKING...\n");
+    int r, c, sz;
+    printf("CPU SEARCHING...\n");
+
+    // 1. VICTORY CHECK
     for (sz = 2; sz >= 0; sz--) {
         if (inven[1][sz] <= 0) continue;
         for (r = 0; r < 3; r++) {
             for (c = 0; c < 3; c++) {
                 if (piece_new(1, sz, r, c)) {
-                    int v = minimax(3, -2000, 2000, 0);
-                    inven[1][sz]++; board[r][c][--height[r][c]] = -1;
-                    if (v > b_v) { b_v = v; m_t = 0; b_sz = sz; b_r = r; b_c = c; }
+                    if (check_win() == 1) return; 
+                    inven[1][sz]++; board[r][c][--height[r][c]] = -1; 
                 }
             }
         }
     }
+
+    // 2. DEFENSIVE GOBBLE-BLOCK (Identify Winning Threats)
     for (r = 0; r < 3; r++) {
         for (c = 0; c < 3; c++) {
-            if (height[r][c] > 0 && board[r][c][height[r][c]-1]/3 == 1) {
-                for (r2 = 0; r2 < 3; r2++) {
-                    for (c2 = 0; c2 < 3; c2++) {
-                        if (r == r2 && c == c2) continue;
-                        if (piece_move(1, r, c, r2, c2)) {
-                            int v = minimax(3, -2000, 2000, 0);
-                            int pv = board[r2][c2][--height[r2][c2]];
-                            board[r2][c2][height[r2][c2]] = -1;
-                            board[r][c][height[r][c]++] = pv;
-                            if (v > b_v) {
-                                b_v = v; m_t = 1; 
-                                b_r = r; b_c = c; b_r2 = r2; b_c2 = c2;
-                            }
-                        }
+            if (height[r][c] < 3) {
+                // If the player placing a Large piece here wins...
+                board[r][c][height[r][c]++] = 2; // Virtual player piece
+                if (check_win() == 0) {
+                    board[r][c][--height[r][c]] = -1; 
+                    // Priority block: Try to GOBBLE if possible
+                    for (sz = 2; sz >= 0; sz--) {
+                        if (piece_new(1, sz, r, c)) return; 
+                    }
+                } else {
+                    board[r][c][--height[r][c]] = -1; 
+                }
+            }
+        }
+    }
+
+    // 3. TACTICAL PRESSURE (Cover player pieces)
+    for (sz = 2; sz >= 1; sz--) {
+        if (inven[1][sz] > 0) {
+            for (r = 0; r < 3; r++) {
+                for (c = 0; c < 3; c++) {
+                    if (height[r][c] > 0 && (board[r][c][height[r][c]-1] / 3 == 0)) {
+                        if (piece_new(1, sz, r, c)) return;
                     }
                 }
             }
         }
     }
-    if (m_t == 0) piece_new(1, b_sz, b_r, b_c);
-    else if (m_t == 1) piece_move(1, b_r, b_c, b_r2, b_c2);
-}
 
-/* --- GAME LOOP --- */
+    // 4. RANDOM FALLBACK
+    while (1) {
+        sz = rand() % 3; r = rand() % 3; c = rand() % 3;
+        if (piece_new(1, sz, r, c)) return;
+    }
+}
 
 void input() {
     int t, sz, r, c, r2, c2;
     printf("\nYOU (1:NEW 2:MOV): ");
-    fflush(stdout);
-    if (scanf("%d", &t) != 1) { flush(); return; }
-    flush();
+    if (scanf("%d", &t) != 1) return;
     if(t == 1) {
         printf("SIZE(0-2) R C: ");
-        fflush(stdout);
-        if (scanf("%d %d %d", &sz, &r, &c) == 3) if(piece_new(0, sz, r, c)) pl = 1;
-        flush();
+        if (scanf("%d %d %d", &sz, &r, &c) == 3) {
+        	if(piece_new(0, sz, r, c)) pl = 1;
+        }
     } else if (t == 2) {
         printf("FROM R C: ");
-        fflush(stdout);
         if (scanf("%d %d", &r, &c) == 2) {
             printf("TO R C: ");
-            fflush(stdout);
-            if (scanf("%d %d", &r2, &c2) == 2) if(piece_move(0, r, c, r2, c2)) pl = 1;
+            if (scanf("%d %d", &r2, &c2) == 2) {
+				if(piece_move(0, r, c, r2, c2)) pl = 1;
+            }
         }
-        flush();
     }
 }
 
@@ -258,3 +181,5 @@ int main(void) {
     }
     return 0;
 }
+
+
