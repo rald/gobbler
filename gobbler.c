@@ -147,16 +147,20 @@ void cpu_play() {
 void input() {
     int t, sz, r, c, r2, c2;
     printf("\nYOU (1:NEW 2:MOV): ");
+    fflush(stdout);
     if (scanf("%d", &t) != 1) { flush(); return; }
     flush();
     if(t == 1) {
         printf("SIZE(0-2) R C: ");
+        fflush(stdout);
         if (scanf("%d %d %d", &sz, &r, &c) == 3) if(piece_new(0, sz, r, c)) pl = 1;
         flush();
     } else if (t == 2) {
         printf("FROM R C: ");
+        fflush(stdout);
         if (scanf("%d %d", &r, &c) == 2) {
             printf("TO R C: ");
+            fflush(stdout);
             if (scanf("%d %d", &r2, &c2) == 2) if(piece_move(0, r, c, r2, c2)) pl = 1;
         }
         flush();
